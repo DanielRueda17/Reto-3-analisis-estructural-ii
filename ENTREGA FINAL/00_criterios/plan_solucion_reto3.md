@@ -602,6 +602,428 @@ Decision que permite:
 reportar q_max y W_max de forma defendible
 ```
 
+### 4.15 Como se definio la estructura
+
+Esta es la parte que no se puede dejar a adivinanza. La estructura no aparece
+magicamente: se arma pasando de la guia a un modelo de nodos, barras, secciones,
+cargas y controles.
+
+#### 4.15.1 Sistema de coordenadas
+
+Primero se fija un sistema simple:
+
+```text
+x = distancia horizontal a lo largo del puente [m]
+y = altura vertical [m]
+tablero superior recto: y = 0
+cordon inferior: y negativo, debajo del tablero
+```
+
+Para que se hace:
+
+- Para que todos los nodos tengan coordenadas claras.
+- Para que las cargas del camion se puedan ubicar por posicion `x`.
+- Para que los desplazamientos verticales salgan como `uy`.
+- Para que la flecha estructural se mida como movimiento vertical respecto al
+  tablero.
+
+Como se valida:
+
+- El puente debe empezar en `x = 0 m`.
+- El puente debe terminar en `x = 146 m`.
+- El tablero debe quedar horizontal en `y = 0`.
+- El cordon inferior debe quedar debajo del tablero, con `y < 0`.
+
+#### 4.15.2 Apoyos
+
+Con `S = 28 m` y `L = 90 m`, los apoyos quedan en:
+
+```text
+apoyo extremo izquierdo: x = 0 m
+pila interior izquierda: x = 28 m
+pila interior derecha: x = 28 + 90 = 118 m
+apoyo extremo derecho: x = 146 m
+```
+
+Para que se hace:
+
+- Los apoyos son los puntos donde la estructura entrega carga al suelo.
+- Sirven para imponer restricciones en el modelo.
+- Sin apoyos bien definidos, la matriz de rigidez puede quedar como mecanismo.
+
+Como se valida:
+
+```text
+0 + S = 28 m
+S + L = 118 m
+2S + L = 146 m
+```
+
+Decision que permite:
+
+```text
+definir donde se restringen desplazamientos y donde se separan las tres luces
+```
+
+#### 4.15.3 Panelizacion del tablero
+
+El codigo vigente divide el tablero asi:
+
+```text
+luces laterales S = 28 m -> paneles cada 4 m
+luz principal L = 90 m -> paneles cada 6 m
+```
+
+Para que se hace:
+
+- Para tener puntos donde conectar montantes y diagonales.
+- Para tener nodos donde aplicar cargas equivalentes del camion.
+- Para que la cercha no sea una sola barra larga, sino un sistema triangulado.
+- Para que la linea de influencia y la carga movil puedan moverse por puntos
+  discretos.
+
+Que significa:
+
+```text
+No es que el puente real solo pueda tener esos puntos.
+Es una discretizacion del modelo para calcular.
+```
+
+Como se valida:
+
+- Los puntos deben incluir `0`, `28`, `118` y `146`.
+- No deben quedar paneles fuera de las luces.
+- No debe haber nodos duplicados.
+- La discretizacion debe ser suficientemente clara para representar la cercha.
+
+Decision que permite:
+
+```text
+definir cuantos nodos y barras tendra el modelo
+```
+
+#### 4.15.4 Definicion de H dentro de la geometria
+
+Para cada altura candidata `H`, el modelo no dice "esta es la definitiva". Dice:
+
+```text
+esta es una H provisional para probar
+```
+
+En el codigo candidato actual se usa:
+
+```text
+y_extremo = -H
+profundidad_apoyo_interior = 2.5H
+y_interior = -2.5H
+```
+
+Esto quiere decir:
+
+- En los apoyos extremos el cordon inferior baja hasta `-H`.
+- En los apoyos interiores baja mas, siguiendo la forma exterior de la guia.
+- Esa relacion `2.5H` es un parametro geometrico provisional; no debe quedar
+  como verdad final sin aprobacion.
+
+Para que se hace:
+
+- Para poder generar una silueta exterior compatible con la guia.
+- Para que cada `H` produzca una geometria completa.
+- Para que se pueda comparar una altura contra otra con el mismo procedimiento.
+
+Como se valida:
+
+- La geometria debe conservar la forma exterior.
+- Cada `H` debe quedar marcada como candidata.
+- Si la relacion `2.5H` no representa bien la guia, se cambia o se barre como
+  otro parametro.
+
+Decision que permite:
+
+```text
+pasar de "H es pendiente" a "voy a probar esta H y ver si cumple"
+```
+
+#### 4.15.5 Radios R y r
+
+Para construir los arcos no se inventan puntos sueltos. Se calcula un arco de
+circunferencia.
+
+Se usa:
+
+```text
+R = c^2/(8f) + f/2
+```
+
+Donde:
+
+```text
+c = cuerda del arco
+f = sagita geometrica del arco
+```
+
+En el modelo:
+
+- `R` representa el radio del arco de la luz principal.
+- `r` representa el radio de los arcos laterales.
+
+Para que se hace:
+
+- Para que la forma exterior sea geometrica, no dibujada a ojo.
+- Para que los nodos del cordon inferior caigan sobre una curva controlada.
+- Para que las longitudes y angulos de barras salgan de coordenadas reales.
+
+Como afecta el calculo:
+
+- Cambia la posicion de los nodos del cordon inferior.
+- Cambia la longitud de montantes y diagonales.
+- Cambia la rigidez `EA/L` porque cambia `L_barra`.
+- Cambia la flecha estructural `delta_max`.
+- Cambia fuerzas axiales.
+
+Como se valida:
+
+- Los extremos del arco deben coincidir con apoyos o puntos definidos.
+- El radio debe ser positivo.
+- La curva debe pasar por los puntos esperados.
+- Las unidades deben quedar en m.
+
+Decision que permite:
+
+```text
+definir la forma exterior antes de armar barras
+```
+
+#### 4.15.6 Nodos del modelo
+
+Luego se crean dos grupos de nodos:
+
+```text
+1. nodos del tablero superior: y = 0
+2. nodos del cordon inferior: y segun arco y H candidata
+```
+
+Se usan las mismas posiciones `x` para tablero y cordon inferior.
+
+Para que se hace:
+
+- El tablero recibe las cargas del camion.
+- El cordon inferior ayuda a cerrar la cercha.
+- Los montantes conectan tablero y cordon inferior.
+- Las diagonales triangulan el sistema.
+
+Como se valida:
+
+- Cada nodo debe tener `id`, `x`, `y` y tipo.
+- No debe haber nodos repetidos con el mismo papel.
+- Los nodos de apoyo deben coincidir con `x = 0, 28, 118, 146`.
+- La forma debe poder graficarse y entenderse antes de calcular.
+
+Decision que permite:
+
+```text
+tener puntos reales donde conectar barras y aplicar cargas
+```
+
+#### 4.15.7 Barras de la cercha
+
+Con los nodos listos, se agregan barras por familia:
+
+```text
+cuerda_superior: une nodos consecutivos del tablero
+cuerda_inferior: une nodos consecutivos del cordon inferior
+montantes: unen tablero y cordon inferior en la misma x
+diagonales_parker: unen tablero y cordon con inclinacion hacia el centro del tramo
+```
+
+Para que se hace cada familia:
+
+- `cuerda_superior`: transmite compresion o tension longitudinal segun la zona y
+  ayuda a formar el borde superior de la cercha.
+- `cuerda_inferior`: cierra el sistema y trabaja como el otro cordon principal.
+- `montantes`: llevan carga vertical del tablero hacia el sistema de cercha.
+- `diagonales_parker`: triangulan los paneles para que el modelo no sea un
+  mecanismo y para que las cargas viajen por esfuerzos axiales.
+
+Como se hizo la diagonal Parker:
+
+```text
+en cada luz se identifica el centro del tramo
+si el panel esta antes del centro, la diagonal se orienta hacia el centro
+si el panel esta despues del centro, la diagonal cambia de sentido
+```
+
+Para que se hace:
+
+- Esa orientacion representa una tipologia Parker interna.
+- Evita poner diagonales al azar.
+- Hace que la estructura tenga una logica de transferencia de cargas.
+
+Como se valida:
+
+- No debe haber barras de longitud cero.
+- No debe haber barras duplicadas.
+- Cada barra debe conectar nodos existentes.
+- Cada luz debe tener cuerda superior, cuerda inferior, montantes y diagonales.
+- La figura de conectividad debe verse como cercha, no como lineas sin sentido.
+
+Decision que permite:
+
+```text
+pasar de una geometria dibujada a una estructura calculable
+```
+
+#### 4.15.8 Asignacion de perfiles
+
+Despues de tener barras, cada barra necesita una seccion AISC.
+
+La asignacion no es decorativa. Sirve porque:
+
+```text
+rigidez axial de barra = E*A/L_barra
+```
+
+Si no hay perfil, no hay `A`. Si no hay `A`, no hay rigidez real. Si no hay
+rigidez real, no se puede calcular flecha ni fuerzas de forma defendible.
+
+Regla inicial de asignacion:
+
+```text
+cordones -> perfiles mas robustos
+diagonales -> perfiles intermedios
+montantes -> perfiles menores o intermedios
+```
+
+Por que:
+
+- Los cordones suelen tomar las fuerzas principales asociadas al momento global.
+- Las diagonales toman cortante y cambian mucho con la posicion del camion.
+- Los montantes transfieren carga vertical y estabilizan paneles.
+
+Como se valida:
+
+- Cada perfil debe existir en el catalogo.
+- Cada barra debe tener una familia y una seccion.
+- Si la flecha queda muy alta, se aumenta `H` o se aumentan areas.
+- Si una barra falla por fuerza axial o pandeo, se cambia su perfil.
+- No se acepta una seccion porque "se ve bien"; se acepta por demanda/capacidad
+  y por deflexion.
+
+Decision que permite:
+
+```text
+dar rigidez y capacidad real a la cercha
+```
+
+#### 4.15.9 Control del desplazamiento vertical
+
+El desplazamiento vertical no se controla mirando el dibujo. Se controla con el
+modelo de rigidez.
+
+Procedimiento:
+
+```text
+1. construir nodos
+2. construir barras
+3. asignar perfiles
+4. calcular rigidez EA/L de cada barra
+5. ensamblar matriz global K
+6. aplicar apoyos
+7. aplicar cargas del camion
+8. resolver desplazamientos u
+9. tomar desplazamientos verticales uy
+10. hallar delta_max
+11. comparar contra L/800 y S/800
+```
+
+Para que se hace:
+
+- Para saber si la estructura se baja mas de lo permitido.
+- Para decidir si la `H` candidata sirve.
+- Para decidir si toca aumentar perfiles.
+
+Como se valida:
+
+```text
+delta_max,L <= 112.5 mm
+delta_max,S <= 35.0 mm
+```
+
+Ademas:
+
+- Si se aumenta el area de perfiles, la deflexion deberia bajar.
+- Si se aumenta `H`, la deflexion normalmente deberia bajar.
+- Si el resultado contradice esa tendencia, se revisan unidades, apoyos, cargas
+  y conectividad.
+
+Decision que permite:
+
+```text
+aceptar o rechazar la rigidez global del puente
+```
+
+#### 4.15.10 Como se sabe que el modelo no esta mal armado
+
+No basta con que el programa entregue numeros. Hay que revisar:
+
+Geometria:
+
+```text
+x inicial = 0 m
+x final = 146 m
+apoyos en 0, 28, 118, 146 m
+tablero en y = 0
+cordon inferior debajo del tablero
+```
+
+Topologia:
+
+```text
+sin barras duplicadas
+sin barras de longitud cero
+sin nodos desconectados importantes
+sin mecanismos
+diagonales coherentes con Parker
+```
+
+Unidades:
+
+```text
+E en kN/m2
+A en m2
+L_barra en m
+F en kN
+u en m
+delta final en mm
+```
+
+Equilibrio:
+
+```text
+suma de cargas verticales ~= suma de reacciones verticales
+```
+
+Sensibilidad fisica:
+
+```text
+si aumento carga -> aumenta delta
+si aumento area -> baja delta
+si aumento H razonablemente -> baja delta
+si quito una barra importante -> el modelo cambia fuerte o falla
+```
+
+Comparacion externa:
+
+```text
+revisar una corrida simple en Ftool o con calculo manual simplificado
+```
+
+Decision que permite:
+
+```text
+confiar en el modelo antes de usarlo para entregar H, perfiles, flechas y q_max
+```
+
 ## 5. Orden completo de solucion
 
 ### Fase 1 - Revisar enunciado, correcciones y decisiones
