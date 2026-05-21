@@ -5,6 +5,25 @@ metalico de tres luces. El repositorio remoto no contiene el archivo local
 completo del proyecto ni versiones preliminares descartadas fuera de
 `ENTREGA FINAL/`.
 
+## Leer primero
+
+El documento principal para entender que se va a hacer, como se va a calcular y
+como se va a validar es:
+
+- [Plan de solucion completo](ENTREGA%20FINAL/00_criterios/plan_solucion_reto3.md)
+
+Secciones clave dentro del plan:
+
+- [Que se calcula y para que sirve](ENTREGA%20FINAL/00_criterios/plan_solucion_reto3.md#4-explicacion-de-que-se-calcula-y-para-que-sirve)
+- [Como se definio la estructura](ENTREGA%20FINAL/00_criterios/plan_solucion_reto3.md#415-como-se-definio-la-estructura)
+- [Control del desplazamiento vertical](ENTREGA%20FINAL/00_criterios/plan_solucion_reto3.md#4159-control-del-desplazamiento-vertical)
+- [Diseno de H por iteracion](ENTREGA%20FINAL/00_criterios/plan_solucion_reto3.md#fase-9---disenar-h-por-iteracion)
+
+En resumen: `H` se propone como altura candidata; con esa `H` se construyen
+radios, nodos, barras y perfiles; luego se aplican cargas y se calcula
+`delta_max`. La `H` solo se acepta si la deflexion cumple `L/800` y `S/800`,
+ademas de revisar fuerzas axiales, pandeo y secciones.
+
 ## Criterios vigentes
 
 - Luz longitudinal: `L = 90 m`.
