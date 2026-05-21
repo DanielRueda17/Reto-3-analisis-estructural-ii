@@ -1,0 +1,8 @@
+{
+  "h_estado": "pendiente_de_diseno",
+  "h_valor_m": null,
+  "profundidad_apoyo_interior_m": null,
+  "criterio_correcto": "Disenar H por iteracion estructural: proponer alturas candidatas, modelar la cercha, aplicar el mayor numero simultaneo de camiones y verificar deflexiones L/800 y S/800.",
+  "criterio_no_permitido": "No definir H por simetria, proporcion grafica, estetica o lectura aproximada de la figura.",
+  "siguiente_paso": "Aprobar el procedimiento de diseno de H antes de generar coordenadas finales o calculos."
+}

@@ -1,0 +1,25 @@
+# Dependencias locales
+node_modules/
+
+# Archivos temporales y salidas regenerables
+tmp/
+*.tmp
+*.bak
+~$*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Archivos de calculo bloqueados por Office
+*.xlsx~
+*.xlsm~
